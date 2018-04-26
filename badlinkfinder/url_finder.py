@@ -19,6 +19,10 @@ def neighbors(html_body, url):
         if current_url.startswith('mailto'):
             continue
 
+        # ignore tel
+        if current_url.startswith('tel'):
+            continue
+
         try:
             parsed_url = urlparse(current_url)
             min_attributes = ('scheme', 'netloc')
