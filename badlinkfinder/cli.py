@@ -48,7 +48,6 @@ positional = parser.add_argument_group(
 positional.add_argument(
     'url',
     metavar='URL',
-    nargs=OPTIONAL,
     default=None,
     help="""
     The starting seed URL to begin crawling your website. This is required to begin searching for bad links.
