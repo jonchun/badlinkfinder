@@ -8,8 +8,7 @@ from badlinkfinder.crawler import Crawler
 
 def main():
     args = parser.parse_args()
-    thread_count = args.threads
-    crawler = Crawler(thread_count, args.verbose)
+    crawler = Crawler(args)
     errors = crawler.run(args.url)
 
     if not errors:
