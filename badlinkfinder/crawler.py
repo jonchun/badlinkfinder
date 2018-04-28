@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+from badlinkfinder.error import SiteError
 import badlinkfinder.url_finder as url_finder
 import badlinkfinder.sitegraph as sitegraph
-import badlinkfinder.logs as logs
+import badlinkfinder.logger as logger
 
 from badlinkfinder.taskqueue import TaskQueue
 
@@ -17,9 +18,13 @@ class Crawler:
         self.queue = TaskQueue(num_workers= args.threads)
 
         self.graph = sitegraph.SiteGraph()
-        self.errors = []
 
-        self.logger = logs.Logger(self, args.verbosity)
+        self.errors = []
+        self.include_inbound = args.include_inbound
+
+        # verbosity must be set before logger since logger references it.
+        self.verbosity = args.verbosity
+        self.logger = logger.Logger(self)
 
         # Timeout setting for loading a page
         self.timeout = args.timeout
@@ -94,15 +99,14 @@ class Crawler:
         except Exception as e:
             node.status = 'error'
             node.error = e
-
-            self.save_error('Error crawling {} | {}'.format(url, e))
+            self.site_error(url)
             self._complete_crawl(url)
         else:
             node.status = 'done'
             node.status_code = response.status_code
 
             if node.status_code >= 300:
-                self.save_error('Error crawling {} | Status Code {}'.format(url, response.status_code))
+                self.site_error(url)
 
             self._complete_crawl(url)
 
@@ -117,19 +121,19 @@ class Crawler:
         except Exception as e:
             node.status = 'error'
             node.error = e
-
-            self.save_error('Error crawling {} | {}'.format(url, e))
+            self.site_error(url)
             self._complete_crawl(url)
         else:
             node.status = 'done'
             node.status_code = response.status_code
 
             if node.status_code >= 300:
-                self.save_error('Error crawling {} | Status Code {}.'.format(url, response.status_code))
+                self.site_error(url)
             elif response.text and response.headers["Content-Type"].startswith('text'):
                 neighbor_urls, errors = url_finder.neighbors(response.content, response.url)
 
-                self.errors.extend(errors)
+                for error_msg in errors:
+                    self.site_error(url, error_msg=error_msg, include_inbound=False, type='html')
 
                 for neighbor_url in neighbor_urls:
                     self.graph.add_neighbor(url, neighbor_url)
@@ -138,9 +142,12 @@ class Crawler:
             self._complete_crawl(url)
 
     def _complete_crawl(self, url):
-        # Finish up crawl of page. Printing a . for ever URL crawled.
         self.logger.complete_crawl(url)
 
-    def save_error(self, error):
-        self.errors.append(error)
-        self.logger.error(error)
+    def site_error(self, url, **kwargs):
+        if 'include_inbound' not in kwargs:
+            kwargs['include_inbound'] = self.include_inbound
+
+        se = SiteError(self.graph, url, **kwargs)
+        self.errors.append(se)
+        self.logger.error(se)

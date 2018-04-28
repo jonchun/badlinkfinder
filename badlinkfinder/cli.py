@@ -9,6 +9,7 @@ from argparse import (
 from textwrap import dedent, wrap
 
 from badlinkfinder import __doc__, __version__
+from badlinkfinder.logger import E
 
 class CustomHelpFormatter(RawDescriptionHelpFormatter):
     """A nicer help formatter.
@@ -81,6 +82,14 @@ crawler_settings.add_argument(
     """
 )
 
+crawler_settings.add_argument(
+    '--include_inbound',
+    action='store_true',
+    help="""
+    Whether to include inbound URLs when reporting Site Errors (show where they were referenced from)
+    """
+)
+
 #######################################################################
 # Troubleshooting
 #######################################################################
@@ -105,15 +114,32 @@ troubleshooting.add_argument(
     """
 )
 
+verbosity_help = '\nThe verbosity level:\n'
+for _enum in E:
+    verbosity_help += '  {}: {}\n'.format(_enum.value, _enum.name)
+
 troubleshooting.add_argument(
     '--verbosity',
-    type=int,
     default=1,
-    help="""
-    The verbosity level:
-      0: NONE
-      1: ERROR
-      2: INFO
-      3: DEBUG
-    """
+    help=verbosity_help
 )
+
+def extra_parse_logic(args):
+    # Convert verbosity to value from ENUM
+    try:
+        verbosity = int(args.verbosity)
+    except ValueError:
+        try:
+            verbosity = E[args.verbosity].value
+        except KeyError:
+            verbosity_help = '\nThe verbosity level:\n'
+            for _enum in E:
+                verbosity_help += '  {}: {}\n'.format(_enum.value, _enum.name)
+            
+            raise BLFInvalidArgument('Verbosity value is invalid. Please use one of the following values:' + verbosity_help)
+    args.verbosity = verbosity
+
+    return args
+
+class BLFInvalidArgument(Exception):
+    pass

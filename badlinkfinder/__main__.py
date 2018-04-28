@@ -15,6 +15,8 @@ def main(argv=None):
         sys.exit(main())
     except KeyboardInterrupt:
         sys.exit('\nERROR: Interrupted by user')
+    except Exception as e:
+        sys.exit(e)
 
 if __name__ == '__main__':
     main()
