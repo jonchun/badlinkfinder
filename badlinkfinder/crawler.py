@@ -2,6 +2,7 @@
 # coding: utf-8
 
 from badlinkfinder.error import SiteError
+from badlinkfinder.utilities import normalize_url
 import badlinkfinder.url_finder as url_finder
 import badlinkfinder.sitegraph as sitegraph
 import badlinkfinder.logger as logger
@@ -10,17 +11,21 @@ from badlinkfinder.taskqueue import TaskQueue
 
 from urllib.parse import urlparse, urlunparse
 import mimetypes
-import time
 import requests
 
 class Crawler:    
     def __init__(self, args):
-        self.queue = TaskQueue(num_workers= args.threads)
+        self.queue = TaskQueue(num_workers=args.threads)
 
         self.graph = sitegraph.SiteGraph()
 
         self.errors = []
         self.include_inbound = args.include_inbound
+
+        self.ignore_prefixes = ['mailto:', 'tel:', 'data:']
+        if args.ignore_prefixes:
+            self.ignore_prefixes.extend(args.ignore_prefixes)
+            self.ignore_prefixes = list(dict.fromkeys(self.ignore_prefixes))
 
         # verbosity must be set before logger since logger references it.
         self.verbosity = args.verbosity
@@ -30,7 +35,6 @@ class Crawler:
         self.timeout = args.timeout
 
         self.domain = None
-
 
     def run(self, seed_url, silent=False):
         if not seed_url.startswith('http://') and not seed_url.startswith('https://'):
@@ -52,6 +56,8 @@ class Crawler:
 
     def crawl(self, url):
         # No need to crawl if we've already crawled it.
+        url = normalize_url(url)
+
         if url in self.graph:
             self.logger.duplicate_crawl(url)
             return
@@ -65,9 +71,12 @@ class Crawler:
     def _smart_crawl(self, url):
         parsed_url = urlparse(url)
 
-        # Don't go crawling the entire internet. Let's stay within the original domain
+        """
+        Don't go crawling the entire internet. Let's stay within the original domain. However, we still want to crawl w/ HEAD request
+        just to see if the resource is even available or if there's some type of status code problem.
+        """
         if parsed_url.netloc != self.domain:
-            self._complete_crawl(url)
+            self._head_crawl(url)
             return
 
         # Only parse http.
@@ -82,13 +91,13 @@ class Crawler:
         if mime_guess:
             for asset_type in asset_types:
                 if asset_type in mime_guess:
-                    self._asset_crawl(url)
+                    self._head_crawl(url)
                     return
 
-        self._full_crawl(url)
+        self._get_crawl(url)
 
 
-    def _asset_crawl(self, url):
+    def _head_crawl(self, url):
         self.logger.asset_crawl(url)
 
         node = self.graph[url]
@@ -110,7 +119,7 @@ class Crawler:
 
             self._complete_crawl(url)
 
-    def _full_crawl(self, url):
+    def _get_crawl(self, url):
         self.logger.full_crawl(url)
 
         node = self.graph[url]
@@ -130,7 +139,7 @@ class Crawler:
             if node.status_code >= 300:
                 self.site_error(url)
             elif response.text and response.headers["Content-Type"].startswith('text'):
-                neighbor_urls, errors = url_finder.neighbors(response.content, response.url)
+                neighbor_urls, errors = url_finder.neighbors(response.content, response.url, self.ignore_prefixes)
 
                 for error_msg in errors:
                     self.site_error(url, error_msg=error_msg, include_inbound=False, type='html')

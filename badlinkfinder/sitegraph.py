@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+from badlinkfinder.utilities import normalize_url
 from collections import defaultdict, namedtuple
 import threading
 
@@ -19,13 +20,17 @@ class SiteGraph:
 
     @threadsafe
     def add_node(self, url):
+        url = normalize_url(url)
         self._nodes[url] = SiteNode(url)
 
     def add_neighbor(self, _from, _to):
+        _from = normalize_url(_from)
+        _to = normalize_url(_to)
         self._graph.inbound[_to].add(_from)
         self._graph.outbound[_from].add(_to)
 
     def get_inbound(self, url):
+        url = normalize_url(url)
         return self._graph.inbound[url]
 
     def __getitem__(self, url):
@@ -33,6 +38,7 @@ class SiteGraph:
 
     @threadsafe
     def __contains__(self, url):
+        url = normalize_url(url)
         for key in self._nodes:
             if key == url:
                 return True
