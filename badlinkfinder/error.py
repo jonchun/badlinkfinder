@@ -41,6 +41,6 @@ class SiteError:
                 for inbound_url in self._graph.get_inbound(self._url):
                     repr_str += '    - {}\n'.format(inbound_url)
 
-            return repr_str
+            return repr_str.rstrip()
         except Exception:
             return 'Error displaying SiteError'

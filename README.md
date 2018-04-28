@@ -29,10 +29,18 @@ Execute as a module.
 ```
 python3 -m badlinkfinder URL
 ```
+or
+```
+blf
+```
 
 Current `--help` output.
 ```
-python3 -m badlinkfinder --help
+$ blf --help
+usage: blf [--threads THREADS] [--timeout TIMEOUT] [--include_inbound]
+           [--help] [--version] [--verbosity VERBOSITY]
+           URL
+
 BadLinkFinder - a recursive bot that scrapes a domain and finds all bad assets/links.
 
 Positional Arguments:

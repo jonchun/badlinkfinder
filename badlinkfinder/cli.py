@@ -29,7 +29,7 @@ class CustomHelpFormatter(RawDescriptionHelpFormatter):
         return text.splitlines()
 
 parser = ArgumentParser(
-    prog='badlinkfinder',
+    prog='blf',
     formatter_class=CustomHelpFormatter,
     description='{}'.format(__doc__.strip()),
     add_help=False
