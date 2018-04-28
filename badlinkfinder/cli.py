@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from argparse import (
-    ArgumentParser, RawDescriptionHelpFormatter, FileType,
+    ArgumentParser, RawDescriptionHelpFormatter
     OPTIONAL, ZERO_OR_MORE, SUPPRESS
 )
 
@@ -87,6 +87,27 @@ crawler_settings.add_argument(
     action='store_true',
     help="""
     Whether to include inbound URLs when reporting Site Errors (show where they were referenced from)
+    """
+)
+
+#######################################################################
+# Parser Settings.
+#######################################################################
+
+parser_settings = parser.add_argument_group(
+    title='Parser Settings',
+    description=None
+)
+
+parser_settings.add_argument(
+    '--ignore_prefix',
+    action='append',
+    dest='ignore_prefixes',
+    help="""
+    Ignore prefix when parsing URLs so that it does not detect as invalid.
+        --ignore-prefix custom
+    will ignore any URL that looks like "custom:nonstandardurlhere.com"
+    (You can declare this option multiple times)
     """
 )
 

@@ -7,7 +7,7 @@ import re
 from urllib.parse import urlparse
 from badlinkfinder.error import SiteError
 
-def neighbors(body, url):
+def neighbors(body, url, ignore_prefixes):
     out_urls = []    
     errors = []
     
@@ -25,16 +25,11 @@ def neighbors(body, url):
         for link in html.iterlinks():
             current_link = link[2]
 
-            # ignore mailto
-            if current_link.startswith('mailto:'):
-                continue
-
-            # ignore tel
-            if current_link.startswith('tel:'):
-                continue
-
-            # ignore data
-            if current_link.startswith('data:'):
+            try:
+                for ignore_prefix in ignore_prefixes:
+                    if current_link.startswith(ignore_prefix):
+                        raise Exception
+            except Exception:
                 continue
 
             try:

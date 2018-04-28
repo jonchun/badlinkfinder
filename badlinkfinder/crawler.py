@@ -15,12 +15,17 @@ import requests
 
 class Crawler:    
     def __init__(self, args):
-        self.queue = TaskQueue(num_workers= args.threads)
+        self.queue = TaskQueue(num_workers=args.threads)
 
         self.graph = sitegraph.SiteGraph()
 
         self.errors = []
         self.include_inbound = args.include_inbound
+
+        self.ignore_prefixes = ['mailto:', 'tel:', 'data:']
+        if args.ignore_prefixes:
+            self.ignore_prefixes.extend(args.ignore_prefixes)
+            self.ignore_prefixes = list(dict.fromkeys(self.ignore_prefixes))
 
         # verbosity must be set before logger since logger references it.
         self.verbosity = args.verbosity
@@ -30,7 +35,6 @@ class Crawler:
         self.timeout = args.timeout
 
         self.domain = None
-
 
     def run(self, seed_url, silent=False):
         if not seed_url.startswith('http://') and not seed_url.startswith('https://'):
@@ -130,7 +134,7 @@ class Crawler:
             if node.status_code >= 300:
                 self.site_error(url)
             elif response.text and response.headers["Content-Type"].startswith('text'):
-                neighbor_urls, errors = url_finder.neighbors(response.content, response.url)
+                neighbor_urls, errors = url_finder.neighbors(response.content, response.url, self.ignore_prefixes)
 
                 for error_msg in errors:
                     self.site_error(url, error_msg=error_msg, include_inbound=False, type='html')
