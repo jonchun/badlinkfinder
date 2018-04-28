@@ -24,10 +24,50 @@ pip3 install -r requirements.txt
 ```
 
 ## Usage
-Execute as a module. Use `--help` for additional documentation.
+Execute as a module.
 
 ```
 python3 -m badlinkfinder URL
+```
+
+Current `--help` output.
+```
+python3 -m badlinkfinder --help
+BadLinkFinder - a recursive bot that scrapes a domain and finds all bad assets/links.
+
+Positional Arguments:
+  These arguments come after any flags and in the order they are listed here.
+      Only URL is required.
+
+  URL
+      The starting seed URL to begin crawling your website. This is required to begin searching for bad links.
+
+
+Crawler Settings:
+  --threads THREADS
+      By default, 5 threads are used for the crawler.
+
+  --timeout TIMEOUT
+      By default, requests time out after 10 seconds.
+
+  --include_inbound
+      Whether to include inbound URLs when reporting Site Errors (show where they were referenced from)
+
+
+Troubleshooting:
+  --help
+      Show this help message and exit.
+
+  --version
+      Show version and exit.
+
+  --verbosity VERBOSITY
+      The verbosity level:
+        0: NONE
+        1: ERROR
+        2: WARNING
+        3: INFO
+        4: ALL
 ```
 
 ## Support
