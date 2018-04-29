@@ -13,8 +13,6 @@ def main(argv=None):
     try:
         from badlinkfinder.core import main
         sys.exit(main())
-    except KeyboardInterrupt:
-        sys.exit('\nERROR: Interrupted by user')
     except Exception as e:
         sys.exit(e)
 
