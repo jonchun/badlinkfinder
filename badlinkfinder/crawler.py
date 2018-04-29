@@ -1,21 +1,32 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+
+import logging
+from urllib.parse import urlparse
+import mimetypes
+
+import requests
+
 from badlinkfinder.error import SiteError
+from badlinkfinder.taskqueue import TaskQueue
 import badlinkfinder.url_finder as url_finder
 import badlinkfinder.sitegraph as sitegraph
 import badlinkfinder.logger as logger
+import json
 
-from badlinkfinder.taskqueue import TaskQueue
+pylogger = logging.getLogger('Crawler')
 
-from urllib.parse import urlparse, urlunparse
-import mimetypes
-import requests
+class ResourceResult:
+    def __init__(self, url, final_url, status_code, content=None):
+        self.url = url
+        self.final_url = final_url
+        self.status_code = status_code
+        self.content = content
 
 class Crawler:    
     def __init__(self, args):
         self.queue = TaskQueue(num_workers=args.threads)
-
         self.graph = sitegraph.SiteGraph()
 
         self.errors = []
@@ -53,6 +64,11 @@ class Crawler:
 
         return self.errors
 
+    def retrieve(self, url):
+        req = requests.get(url, timeout=self.timeout)
+        pylogger.debug('Fetching {} [{}]'.format( url, req.status_code ))
+        return ResourceResult(url, req.url, req.status_code, req.text)
+
     def crawl(self, url):
         # No need to crawl if we've already crawled it.
         if url in self.graph:
@@ -66,6 +82,7 @@ class Crawler:
 
     # Logic to figure out how to crawl the page. We don't want to search for links on assets.
     def _smart_crawl(self, url):
+        pylogger.debug("smart_crawl")
         parsed_url = urlparse(url)
 
         """
@@ -73,6 +90,7 @@ class Crawler:
         just to see if the resource is even available or if there's some type of status code problem.
         """
         if parsed_url.netloc != self.domain:
+            pylogger.debug(json.dumps({'netloc': parsed_url.netloc, 'domain': self.domain}))
             self._head_crawl(url)
             return
 
@@ -117,6 +135,7 @@ class Crawler:
             self._complete_crawl(url)
 
     def _get_crawl(self, url):
+        pylogger.debug('get_crawl called')
         self.logger.full_crawl(url)
 
         node = self.graph[url]
@@ -133,6 +152,8 @@ class Crawler:
             node.status = 'done'
             node.status_code = response.status_code
 
+
+
             if node.status_code >= 300:
                 self.site_error(url)
             elif response.text and response.headers["Content-Type"].startswith('text'):
@@ -142,6 +163,7 @@ class Crawler:
                     self.site_error(url, error_msg=error_msg, include_inbound=False, type='html')
 
                 for neighbor_url in neighbor_urls:
+                    pylogger.debug("Adding neighbor url {}".format(neighbor_url))
                     self.graph.add_neighbor(url, neighbor_url)
                     self.queue.add_task(self.crawl, neighbor_url)
 
