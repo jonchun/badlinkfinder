@@ -90,6 +90,14 @@ crawler_settings.add_argument(
     """
 )
 
+crawler_settings.add_argument(
+    '--output_file', '--output-file',
+    type=str,
+    help="""
+    File name for storing the errors found.
+    """
+)
+
 #######################################################################
 # Parser Settings.
 #######################################################################
