@@ -2,7 +2,6 @@
 # coding: utf-8
 
 from badlinkfinder.error import SiteError
-from badlinkfinder.utilities import normalize_url
 import badlinkfinder.url_finder as url_finder
 import badlinkfinder.sitegraph as sitegraph
 import badlinkfinder.logger as logger
@@ -56,8 +55,6 @@ class Crawler:
 
     def crawl(self, url):
         # No need to crawl if we've already crawled it.
-        url = normalize_url(url)
-
         if url in self.graph:
             self.logger.duplicate_crawl(url)
             return

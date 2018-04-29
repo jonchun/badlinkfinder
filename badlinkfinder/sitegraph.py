@@ -20,8 +20,8 @@ class SiteGraph:
 
     @threadsafe
     def add_node(self, url):
-        url = normalize_url(url)
-        self._nodes[url] = SiteNode(url)
+        normalized_url = normalize_url(url)
+        self._nodes[normalized_url] = SiteNode(url)
 
     def add_neighbor(self, _from, _to):
         _from = normalize_url(_from)
@@ -34,6 +34,7 @@ class SiteGraph:
         return self._graph.inbound[url]
 
     def __getitem__(self, url):
+        url = normalize_url(url)
         return self._nodes[url]
 
     @threadsafe

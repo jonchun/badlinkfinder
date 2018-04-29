@@ -39,7 +39,6 @@ class Logger:
 
     def error(self, _error):
         if self.verbosity >= E.INFO:
-            print('\n')
             print(_error)
         elif self.verbosity >= E.ERROR:
             print('!', end='', flush=True)
