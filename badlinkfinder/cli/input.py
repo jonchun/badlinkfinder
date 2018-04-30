@@ -1,15 +1,11 @@
-#!/usr/bin/env python3
-# coding: utf-8
-
-from argparse import (
-    ArgumentParser, RawDescriptionHelpFormatter,
-    OPTIONAL, ZERO_OR_MORE, SUPPRESS
-)
-
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, SUPPRESS
+import logging
 from textwrap import dedent, wrap
 
 from badlinkfinder import __doc__, __version__
-from badlinkfinder.logger import E
+from badlinkfinder.utilities import str2LogLevel
+
+logger = logging.getLogger('blf.cli')
 
 class CustomHelpFormatter(RawDescriptionHelpFormatter):
     """A nicer help formatter.
@@ -65,11 +61,11 @@ crawler_settings = parser.add_argument_group(
 )
 
 crawler_settings.add_argument(
-    '--threads',
+    '--workers',
     type=int,
     default=5,
     help="""
-    By default, 5 threads are used for the crawler.
+    By default, 5 workers are used for the crawler.
     """
 )
 
@@ -83,7 +79,8 @@ crawler_settings.add_argument(
 )
 
 crawler_settings.add_argument(
-    '--include_inbound', '--include-inbound',
+    '--include-inbound',
+    dest='include_inbound',
     action='store_true',
     help="""
     Whether to include inbound URLs when reporting Site Errors (show where they were referenced from)
@@ -91,7 +88,8 @@ crawler_settings.add_argument(
 )
 
 crawler_settings.add_argument(
-    '--output_file', '--output-file',
+    '--output-file',
+    dest='output_file',
     type=str,
     help="""
     File name for storing the errors found.
@@ -108,13 +106,25 @@ parser_settings = parser.add_argument_group(
 )
 
 parser_settings.add_argument(
-    '--ignore_prefix', '--ignore-prefix',
+    '--ignore-schemes',
     action='append',
-    dest='ignore_prefixes',
+    dest='ignore_schemes',
     help="""
-    Ignore prefix when parsing URLs so that it does not detect as invalid.
-        --ignore-prefix custom
+    Ignore scheme when parsing URLs so that it does not detect as invalid.
+        --ignore-schemes custom
     will ignore any URL that looks like "custom:nonstandardurlhere.com"
+    (You can declare this option multiple times)
+    """
+)
+
+parser_settings.add_argument(
+    '--ignore-domains',
+    action='append',
+    dest='ignore_domains',
+    help="""
+    Ignore external domain when crawling URLs. 
+        --ignore-domains example.com
+    will not crawl any URL that is on "example.com".
     (You can declare this option multiple times)
     """
 )
@@ -143,30 +153,27 @@ troubleshooting.add_argument(
     """
 )
 
-verbosity_help = '\nThe verbosity level:\n'
-for _enum in E:
-    verbosity_help += '  {}: {}\n'.format(_enum.value, _enum.name)
+log_levels = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
+log_level_help = ''
+for log_level in log_levels:
+    log_level_help += '{} | '.format(log_level)
+log_level_help = '[{}]'.format(log_level_help.rstrip(' |'))
 
 troubleshooting.add_argument(
-    '--verbosity',
-    default=1,
-    help=verbosity_help
+    '--log_level', '--log-level',
+    dest='log_level',
+    type=str,
+    default='WARNING',
+    help=log_level_help
 )
 
 def extra_parse_logic(args):
-    # Convert verbosity to value from ENUM
+    # do extra parsing/validation on arguments here
     try:
-        verbosity = int(args.verbosity)
+        level = str2LogLevel(args.log_level)
     except ValueError:
-        try:
-            verbosity = E[args.verbosity].value
-        except KeyError:
-            verbosity_help = '\nThe verbosity level:\n'
-            for _enum in E:
-                verbosity_help += '  {}: {}\n'.format(_enum.value, _enum.name)
-            
-            raise BLFInvalidArgument('Verbosity value is invalid. Please use one of the following values:' + verbosity_help)
-    args.verbosity = verbosity
+        raise BLFInvalidArgument('Log level "{}" is invalid. Please use one of the following values: {}' .format(args.log_level, log_level_help))
+    args.log_level = level
 
     return args
 
