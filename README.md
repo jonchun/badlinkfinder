@@ -37,8 +37,10 @@ blf
 Current `--help` output.
 ```
 $ blf --help
-usage: blf [--threads THREADS] [--timeout TIMEOUT] [--include_inbound]
-           [--help] [--version] [--verbosity VERBOSITY]
+usage: blf [--workers WORKERS] [--timeout TIMEOUT] [--include-inbound]
+           [--output-file OUTPUT_FILE] [--ignore-schemes IGNORE_SCHEMES]
+           [--ignore-domains IGNORE_DOMAINS] [--help] [--version]
+           [--log_level LOG_LEVEL]
            URL
 
 BadLinkFinder - a recursive bot that scrapes a domain and finds all bad assets/links.
@@ -52,14 +54,31 @@ Positional Arguments:
 
 
 Crawler Settings:
-  --threads THREADS
-      By default, 5 threads are used for the crawler.
+  --workers WORKERS
+      By default, 5 workers are used for the crawler.
 
   --timeout TIMEOUT
       By default, requests time out after 10 seconds.
 
-  --include_inbound
+  --include-inbound
       Whether to include inbound URLs when reporting Site Errors (show where they were referenced from)
+
+  --output-file OUTPUT_FILE
+      File name for storing the errors found.
+
+
+Parser Settings:
+  --ignore-schemes IGNORE_SCHEMES
+      Ignore scheme when parsing URLs so that it does not detect as invalid.
+          --ignore-schemes custom
+      will ignore any URL that looks like "custom:nonstandardurlhere.com"
+      (You can declare this option multiple times)
+
+  --ignore-domains IGNORE_DOMAINS
+      Ignore external domain when crawling URLs.
+          --ignore-domains example.com
+      will not crawl any URL that is on "example.com".
+      (You can declare this option multiple times)
 
 
 Troubleshooting:
@@ -69,13 +88,8 @@ Troubleshooting:
   --version
       Show version and exit.
 
-  --verbosity VERBOSITY
-      The verbosity level:
-        0: NONE
-        1: ERROR
-        2: WARNING
-        3: INFO
-        4: ALL
+  --log_level LOG_LEVEL, --log-level LOG_LEVEL
+      [CRITICAL | ERROR | WARNING | INFO | DEBUG | NOTSET]
 ```
 
 ## Support
@@ -83,6 +97,4 @@ Troubleshooting:
 Please [open an issue](https://github.com/Jonchun/badlinkfinder/issues/new) for support. This is very much a work in progress, so rapid-development will be happening.
 
 ## Contributing
-
-Please contribute using [Github Flow](https://guides.github.com/introduction/flow/).
-Create a branch, add commits, and [open a pull request](https://github.com/Jonchun/badlinkfinder/compare).
+[Open a pull request](https://github.com/Jonchun/badlinkfinder/compare).

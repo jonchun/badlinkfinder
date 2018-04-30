@@ -18,24 +18,22 @@ class SiteGraph:
         self._nodes = {}
         self._lock = threading.Lock()
 
-    @threadsafe
-    def add_node(self, url):
-        normalized_url = normalize_url(url)
-        self._nodes[normalized_url] = SiteNode(url)
-
-    def add_neighbor(self, _from, _to):
-        _from = normalize_url(_from)
-        _to = normalize_url(_to)
-        self._graph.inbound[_to].add(_from)
-        self._graph.outbound[_from].add(_to)
+    def add_neighbor(self, from_url, to_url):
+        from_url = normalize_url(from_url)
+        to_url = normalize_url(to_url)
+        self._graph.inbound[to_url].add(from_url)
+        self._graph.outbound[from_url].add(to_url)
 
     def get_inbound(self, url):
+        return self._graph.inbound[normalize_url(url)]
+
+    @threadsafe
+    def __setitem__(self, url, value):
         url = normalize_url(url)
-        return self._graph.inbound[url]
+        self._nodes[url] = value
 
     def __getitem__(self, url):
-        url = normalize_url(url)
-        return self._nodes[url]
+        return self._nodes[normalize_url(url)]
 
     @threadsafe
     def __contains__(self, url):
@@ -44,15 +42,3 @@ class SiteGraph:
             if key == url:
                 return True
         return False
-
-class SiteNode:
-    def __init__(self, url):
-        self.url = url
-        self.request_type = None
-        self.status = None
-        self.status_code = None
-        self.contents = None
-        self.error = None
-
-    def __repr__(self):
-        return "<SiteNode {} {} | {}, {}>".format(self.request_type, self.url, self.status, self.status_code)
