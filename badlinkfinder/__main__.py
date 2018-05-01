@@ -14,9 +14,7 @@ def main(argv=None):
         from badlinkfinder.core import main
         sys.exit(main())
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+        sys.exit(e)
 
 if __name__ == '__main__':
     main()

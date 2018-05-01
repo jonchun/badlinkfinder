@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from badlinkfinder.fetcher import fetch_url
+from badlinkfinder.fetcher import fetch_url_head, fetch_url_get
 from badlinkfinder.sitegraph import SiteGraph
 from badlinkfinder.taskqueue import TaskQueue
 
@@ -25,7 +25,8 @@ class Crawler:
         domain (str): Contains the original domain of the seed URL
     """
     def __init__(self, workers=5, timeout=10, ignore_schemes=[], ignore_domains=[]):
-        """Construct a new Crawler
+        """
+        Construct a new Crawler
 
         Args:
             workers (int): How many workers to use when crawling site.
@@ -51,9 +52,9 @@ class Crawler:
         if not seed_url.startswith('http://') and not seed_url.startswith('https://'):
             seed_url = 'http://' + seed_url
 
-        seed_node, _ = fetch_url(seed_url, request_type='HEAD')
+        seed_node = fetch_url_head(seed_url)
 
-        if seed_node.status_code != 200:
+        if not (seed_node.is_ok and seed_node.is_html):
             raise Exception('Unable to load seed URL. Exiting...')
 
         parsed_seed = urlparse(seed_node.final_url)
@@ -77,17 +78,28 @@ class Crawler:
             self.graph[url] = None
             
             request_type = smart_request_type(url, self.domain)
-            if request_type is False:
+
+            if request_type == 'GET':
+                site_node = fetch_url_get(url, timeout=self.timeout)
+            elif request_type == 'HEAD':
+                site_node = fetch_url_head(url, timeout=self.timeout)
+            else:
+                logger.error('Invalid Request Type {} when crawling {}'.format(request_type, url))
                 return
 
-            site_node, possible_neighbors = fetch_url(url, request_type=request_type, timeout=self.timeout)
-            neighbors = self.filter_neighbors(possible_neighbors)
+            possible_neighbors = []
+
+            if site_node.final_domain == self.domain:
+                # We only want to search for neighbors on the same domain
+                possible_neighbors = site_node.neighbors
+
+            filtered_neighbors = self.filter_neighbors(possible_neighbors)
             self.graph[url] = site_node
 
-            if site_node.status_code != 200:
+            if not site_node.is_ok:
                 self.site_error(site_node)
 
-            for neighbor_url in neighbors:
+            for neighbor_url in filtered_neighbors:
                 self.queue.add_task(self.crawl, neighbor_url)
                 self.graph.add_neighbor(url, neighbor_url)
         except Exception:
@@ -116,11 +128,8 @@ class Crawler:
 
     def site_error(self, site_node, error_type=None, error_msg=None):
         se = SiteError(self.graph, site_node.url, error_type=error_type, error_msg=error_msg)
-        #logger.info(se)
+        logger.warning(se)
         self.errors.append(se)
-
-    def format_errors(self, graph):
-        pass
 
 # Logic to figure out how to crawl the page. We don't want to search for links on assets or external sites
 def smart_request_type(url, domain=None):

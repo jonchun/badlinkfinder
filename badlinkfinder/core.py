@@ -28,3 +28,7 @@ def main():
     except KeyboardInterrupt:
         # Catch Interrupt and save progress in case you want to restart it. (TODO)
         raise Exception('ERROR: Interrupted by user')
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise e
